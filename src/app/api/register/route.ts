@@ -20,7 +20,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { username, pubkey } = result.data;
+    const { username } = result.data;
 
     // TODO: Add your database logic here to store the registration
     // For example:
