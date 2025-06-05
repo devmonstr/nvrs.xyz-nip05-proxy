@@ -22,54 +22,120 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Helper: ตรวจสอบ login จาก sessionStorage
 
+// เพิ่ม: Relay management helpers
+interface Relay {
+  id: number;
+  url: string;
+}
+
 export default function ProfilePage() {
-  const { user, nostrProfile, loading, refreshUser, logout } = useUser();
-  const [editing, setEditing] = useState(false);
-  const [newUsername, setNewUsername] = useState('');
-  const [editLoading, setEditLoading] = useState(false);
+  const { user, nostrProfile, loading, logout } = useUser();
+  const [relays, setRelays] = useState<Relay[]>([]);
+  const [newRelay, setNewRelay] = useState('');
+  const [relayLoading, setRelayLoading] = useState(false);
+  const [username, setUsername] = useState('');
+  const [updateLoading, setUpdateLoading] = useState(false);
   const pubkeyRef = useRef<HTMLSpanElement>(null);
   const router = useRouter();
 
   useEffect(() => {
-    if (user) setNewUsername(user.username || '');
+    if (user) {
+      setUsername(user.username || '');
+      // โหลด relay จาก Supabase
+      const fetchRelays = async () => {
+        const { data, error } = await supabase
+          .from('user_relays')
+          .select('id, url')
+          .eq('public_key', user.public_key);
+        if (!error && data) setRelays(data);
+      };
+      fetchRelays();
+    }
     if (user === null && !loading) {
       router.replace('/');
     }
   }, [user, loading, router]);
 
-  // ฟังก์ชันแก้ไข username
-  const handleEditUsername = async () => {
+  // เพิ่ม relay
+  const handleAddRelay = async () => {
     if (!user) return;
-    if (!newUsername || newUsername === user.username) {
-      setEditing(false);
+    if (!newRelay.trim()) return;
+    setRelayLoading(true);
+    const url = newRelay.trim();
+    // ตรวจสอบซ้ำ
+    if (relays.some(r => r.url === url)) {
+      toast.error('Relay นี้ถูกเพิ่มไว้แล้ว');
+      setRelayLoading(false);
       return;
     }
-    setEditLoading(true);
+    const { error, data } = await supabase
+      .from('user_relays')
+      .insert({ public_key: user.public_key, url })
+      .select('id, url')
+      .single();
+    if (error) {
+      toast.error('เพิ่ม relay ไม่สำเร็จ');
+    } else {
+      setRelays([...relays, data]);
+      setNewRelay('');
+      toast.success('เพิ่ม relay สำเร็จ');
+    }
+    setRelayLoading(false);
+  };
+
+  // ลบ relay
+  const handleDeleteRelay = async (id: number) => {
+    setRelayLoading(true);
+    const { error } = await supabase
+      .from('user_relays')
+      .delete()
+      .eq('id', id);
+    if (error) {
+      toast.error('ลบ relay ไม่สำเร็จ');
+    } else {
+      setRelays(relays.filter(r => r.id !== id));
+      toast.success('ลบ relay สำเร็จ');
+    }
+    setRelayLoading(false);
+  };
+
+  // Update profile handler (username only)
+  const handleUpdateProfile = async () => {
+    if (!user) return;
+    const currentUsername = user!.username;
+    if (!username.trim()) {
+      toast.error('Username ห้ามว่าง');
+      return;
+    }
+    if (username === currentUsername) {
+      toast.info('Username ไม่ได้เปลี่ยนแปลง');
+      return;
+    }
+    setUpdateLoading(true);
     // ตรวจสอบ username ซ้ำ
     const { data: userByName } = await supabase
       .from('registered_users')
       .select('id')
-      .eq('username', newUsername)
+      .eq('username', username)
       .single();
     if (userByName) {
       toast.error('Username นี้ถูกใช้ไปแล้ว');
-      setEditLoading(false);
+      setUpdateLoading(false);
       return;
     }
     // update username ใน registered_users
     const { error } = await supabase
       .from('registered_users')
-      .update({ username: newUsername })
-      .eq('public_key', user.public_key);
+      .update({ username })
+      .eq('public_key', user!.public_key);
     if (error) {
       toast.error('Update username failed');
-      setEditLoading(false);
+      setUpdateLoading(false);
       return;
     }
     toast.success('Username updated!');
-    await refreshUser();
-    setEditing(false);
-    setEditLoading(false);
+    setUpdateLoading(false);
+    window.location.reload(); // force refresh user context
   };
 
   // ป้องกัน hydration mismatch: render loading ก่อน mount
@@ -137,34 +203,17 @@ export default function ProfilePage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <h3 className="text-sm font-medium">Username</h3>
-                          {editing ? (
-                            <div className="flex gap-2">
-                              <input
-                                className="border rounded px-2 py-1 text-sm"
-                                value={newUsername}
-                                onChange={e => setNewUsername(e.target.value)}
-                                disabled={editLoading}
-                              />
-                              <Button size="sm" variant="outline" onClick={handleEditUsername} disabled={editLoading}>
-                                Save
-                              </Button>
-                              <Button size="sm" variant="ghost" onClick={() => { setEditing(false); setNewUsername(user.username); }}>
-                                Cancel
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm text-muted-foreground">{user.username}</span>
-                              <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
-                                Edit
-                              </Button>
-                            </div>
-                          )}
+                          <input
+                            className="border rounded px-2 py-1 text-sm w-full"
+                            value={username}
+                            onChange={e => setUsername(e.target.value)}
+                            disabled={updateLoading}
+                          />
                         </div>
                         <div className="space-y-2">
                           <h3 className="text-sm font-medium">NIP-05 Address</h3>
                           <p className="text-sm text-muted-foreground">
-                            {user.username}@nvrs.xyz
+                            {username}@nvrs.xyz
                           </p>
                         </div>
                         <div className="space-y-2">
@@ -198,13 +247,38 @@ export default function ProfilePage() {
                           </p>
                         </div>
                       </div>
-                      {!editing && (
-                        <div className="flex justify-end">
-                          <Button variant="outline" onClick={() => window.location.href = '/register'}>
-                            Update Profile
+                      {/* Relay Management Section */}
+                      <div className="mt-8">
+                        <h3 className="text-sm font-medium mb-2">Your Relays</h3>
+                        <div className="flex gap-2 mb-4">
+                          <input
+                            className="border rounded px-2 py-1 text-sm flex-1"
+                            placeholder="wss://your-relay.example"
+                            value={newRelay}
+                            onChange={e => setNewRelay(e.target.value)}
+                            disabled={relayLoading}
+                          />
+                          <Button size="sm" onClick={handleAddRelay} disabled={relayLoading || !newRelay.trim()}>
+                            Add Relay
                           </Button>
                         </div>
-                      )}
+                        <ul className="space-y-2">
+                          {relays.length === 0 && <li className="text-sm text-muted-foreground">No relays added yet.</li>}
+                          {relays.map(relay => (
+                            <li key={relay.id} className="flex items-center gap-2">
+                              <span className="text-sm">{relay.url}</span>
+                              <Button size="icon" variant="ghost" onClick={() => handleDeleteRelay(relay.id)} disabled={relayLoading}>
+                                ✕
+                              </Button>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="flex justify-end mt-6">
+                        <Button variant="outline" onClick={handleUpdateProfile} disabled={updateLoading}>
+                          {updateLoading ? 'Updating...' : 'Update Profile'}
+                        </Button>
+                      </div>
                       <hr className="my-6" />
                       <div className="mt-4">
                         <h3 className="text-sm font-bold text-red-600 mb-2">Danger Zone</h3>
