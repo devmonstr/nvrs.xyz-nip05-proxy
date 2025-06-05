@@ -83,7 +83,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             >
               <Link href="/">
                 <IconInnerShadowTop className="!size-5" />
-                <span className="text-base font-semibold">Nostr Dashboard</span>
+                <span className="text-base font-semibold">nvrs.xyz NIP-05 Proxy</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
