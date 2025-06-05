@@ -20,9 +20,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Helper: ตรวจสอบ login จาก sessionStorage
+// Helper: Check login from sessionStorage
 
-// เพิ่ม: Relay management helpers
+// Add: Relay management helpers
 interface Relay {
   id?: number;
   url: string;
@@ -42,7 +42,7 @@ export default function ProfilePage() {
     if (user) {
       setUsername(user.username || '');
       setLightningAddress(user.lightning_address || '');
-      // โหลด relay จาก Supabase
+      // Load relays from Supabase
       const fetchRelays = async () => {
         const { data, error } = await supabase
           .from('user_relays')
@@ -57,19 +57,19 @@ export default function ProfilePage() {
     }
   }, [user, loading, router]);
 
-  // เพิ่ม relay ชั่วคราวใน state (ยังไม่บันทึก)
+  // Add relay temporarily in state (not yet saved)
   const handleAddRelay = () => {
     const url = newRelay.trim();
     if (!url) return;
     if (relays.some(r => r.url === url)) {
-      toast.error('Relay นี้ถูกเพิ่มไว้แล้ว');
+      toast.error('This relay has already been added');
       return;
     }
     setRelays([...relays, { url }]);
     setNewRelay('');
   };
 
-  // ลบ relay ชั่วคราวใน state (ยังไม่บันทึก)
+  // Remove relay temporarily in state (not yet saved)
   const handleDeleteRelay = (url: string) => {
     setRelays(relays.filter(r => r.url !== url));
   };

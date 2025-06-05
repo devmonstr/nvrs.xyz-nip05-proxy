@@ -66,6 +66,32 @@ Built with Next.js, Supabase, and AI-assisted development.
 - [Radix UI](https://www.radix-ui.com/) & [shadcn/ui](https://ui.shadcn.com/) (UI components)
 - [TypeScript](https://www.typescriptlang.org/)
 
+## Database Schema (Supabase)
+
+This project uses Supabase with the following main tables:
+
+### 1. registered_users
+```sql
+create table public.registered_users (
+  id serial primary key,
+  username text not null unique,
+  public_key text not null unique,
+  lightning_address text,
+  created_at timestamp default CURRENT_TIMESTAMP
+);
+```
+
+### 2. user_relays
+```sql
+create table public.user_relays (
+  id serial primary key,
+  url text not null,
+  user_id integer references public.registered_users(id)
+  -- Note: Foreign key to registered_users
+  -- Row Level Security (RLS) is enabled
+);
+```
+
 ---
 
 ## FAQ

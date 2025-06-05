@@ -70,7 +70,7 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
         return;
       }
-      // ตรวจสอบ public_key ใน Supabase
+      // Check public_key in Supabase
       const { data } = await supabase
         .from('registered_users')
         .select('*')
