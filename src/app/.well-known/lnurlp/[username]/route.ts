@@ -11,7 +11,11 @@ export async function GET(
 ) {
   const { username } = params;
   if (!username) {
-    return NextResponse.json({ status: 'ERROR', reason: 'No username provided' }, { status: 400 });
+    return NextResponse.json({ status: 'ERROR', reason: 'No username provided' }, { status: 400, headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    }});
   }
   // ดึง lightning_address จากฐานข้อมูล
   const { data, error } = await supabase
@@ -20,11 +24,19 @@ export async function GET(
     .eq('username', username)
     .single();
   if (error || !data || !data.lightning_address) {
-    return NextResponse.json({ status: 'ERROR', reason: 'No lightning address found' }, { status: 404 });
+    return NextResponse.json({ status: 'ERROR', reason: 'No lightning address found' }, { status: 404, headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    }});
   }
   const [lnName, lnDomain] = data.lightning_address.split('@');
   if (!lnName || !lnDomain) {
-    return NextResponse.json({ status: 'ERROR', reason: 'Invalid lightning address' }, { status: 400 });
+    return NextResponse.json({ status: 'ERROR', reason: 'Invalid lightning address' }, { status: 400, headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    }});
   }
   // สร้าง LNURL-pay metadata (proxy ไปยัง LN address จริง)
   return NextResponse.json({
@@ -40,6 +52,12 @@ export async function GET(
     payerData: {
       name: { mandatory: false },
       email: { mandatory: false }
+    }
+  }, {
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
     }
   });
 } 
