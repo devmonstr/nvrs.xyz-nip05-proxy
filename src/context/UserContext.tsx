@@ -12,6 +12,7 @@ interface User {
   username: string;
   public_key: string;
   created_at: string;
+  lightning_address?: string;
 }
 
 interface NostrProfileMetadata {

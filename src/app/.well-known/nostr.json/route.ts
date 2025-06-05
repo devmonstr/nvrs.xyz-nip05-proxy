@@ -16,7 +16,7 @@ export async function GET(req: Request) {
     // ดึง user จาก Supabase ตาม username
     const { data, error } = await supabase
       .from('registered_users')
-      .select('public_key')
+      .select('id, public_key')
       .eq('username', name)
       .single();
     if (error || !data) {
@@ -24,11 +24,12 @@ export async function GET(req: Request) {
       return NextResponse.json({ names: {} });
     }
     const pubkey = data.public_key;
-    // ดึง relay ของ user จาก user_relays
+    const userId = data.id;
+    // ดึง relay ของ user จาก user_relays (ใช้ user_id)
     const { data: relaysData } = await supabase
       .from('user_relays')
       .select('url')
-      .eq('public_key', pubkey);
+      .eq('user_id', userId);
     const relaysArr = relaysData ? relaysData.map((r: { url: string }) => r.url) : [];
     // คืนค่า names และ relays ตาม NIP-05
     return NextResponse.json({

@@ -24,16 +24,16 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // เพิ่ม: Relay management helpers
 interface Relay {
-  id: number;
+  id?: number;
   url: string;
 }
 
 export default function ProfilePage() {
   const { user, nostrProfile, loading, logout } = useUser();
+  const [username, setUsername] = useState('');
+  const [lightningAddress, setLightningAddress] = useState('');
   const [relays, setRelays] = useState<Relay[]>([]);
   const [newRelay, setNewRelay] = useState('');
-  const [relayLoading, setRelayLoading] = useState(false);
-  const [username, setUsername] = useState('');
   const [updateLoading, setUpdateLoading] = useState(false);
   const pubkeyRef = useRef<HTMLSpanElement>(null);
   const router = useRouter();
@@ -41,12 +41,13 @@ export default function ProfilePage() {
   useEffect(() => {
     if (user) {
       setUsername(user.username || '');
+      setLightningAddress(user.lightning_address || '');
       // โหลด relay จาก Supabase
       const fetchRelays = async () => {
         const { data, error } = await supabase
           .from('user_relays')
           .select('id, url')
-          .eq('public_key', user.public_key);
+          .eq('user_id', user.id);
         if (!error && data) setRelays(data);
       };
       fetchRelays();
@@ -56,86 +57,79 @@ export default function ProfilePage() {
     }
   }, [user, loading, router]);
 
-  // เพิ่ม relay
-  const handleAddRelay = async () => {
-    if (!user) return;
-    if (!newRelay.trim()) return;
-    setRelayLoading(true);
+  // เพิ่ม relay ชั่วคราวใน state (ยังไม่บันทึก)
+  const handleAddRelay = () => {
     const url = newRelay.trim();
-    // ตรวจสอบซ้ำ
+    if (!url) return;
     if (relays.some(r => r.url === url)) {
       toast.error('Relay นี้ถูกเพิ่มไว้แล้ว');
-      setRelayLoading(false);
       return;
     }
-    const { error, data } = await supabase
-      .from('user_relays')
-      .insert({ public_key: user.public_key, url })
-      .select('id, url')
-      .single();
-    if (error) {
-      toast.error('เพิ่ม relay ไม่สำเร็จ');
-    } else {
-      setRelays([...relays, data]);
-      setNewRelay('');
-      toast.success('เพิ่ม relay สำเร็จ');
-    }
-    setRelayLoading(false);
+    setRelays([...relays, { url }]);
+    setNewRelay('');
   };
 
-  // ลบ relay
-  const handleDeleteRelay = async (id: number) => {
-    setRelayLoading(true);
-    const { error } = await supabase
-      .from('user_relays')
-      .delete()
-      .eq('id', id);
-    if (error) {
-      toast.error('ลบ relay ไม่สำเร็จ');
-    } else {
-      setRelays(relays.filter(r => r.id !== id));
-      toast.success('ลบ relay สำเร็จ');
-    }
-    setRelayLoading(false);
+  // ลบ relay ชั่วคราวใน state (ยังไม่บันทึก)
+  const handleDeleteRelay = (url: string) => {
+    setRelays(relays.filter(r => r.url !== url));
   };
 
-  // Update profile handler (username only)
+  // อัปเดตโปรไฟล์ทั้งหมด (username, lightning address, relays)
   const handleUpdateProfile = async () => {
     if (!user) return;
-    const currentUsername = user!.username;
     if (!username.trim()) {
       toast.error('Username ห้ามว่าง');
       return;
     }
-    if (username === currentUsername) {
-      toast.info('Username ไม่ได้เปลี่ยนแปลง');
+    if (!lightningAddress.trim()) {
+      toast.error('Lightning Address ห้ามว่าง');
       return;
     }
     setUpdateLoading(true);
-    // ตรวจสอบ username ซ้ำ
-    const { data: userByName } = await supabase
+    // ตรวจสอบ username ซ้ำ (ถ้าเปลี่ยน)
+    if (username !== user.username) {
+      const { data: userByName } = await supabase
+        .from('registered_users')
+        .select('id')
+        .eq('username', username)
+        .single();
+      if (userByName) {
+        toast.error('Username นี้ถูกใช้ไปแล้ว');
+        setUpdateLoading(false);
+        return;
+      }
+    }
+    // อัปเดต username + lightning address
+    const { error: updateError } = await supabase
       .from('registered_users')
-      .select('id')
-      .eq('username', username)
-      .single();
-    if (userByName) {
-      toast.error('Username นี้ถูกใช้ไปแล้ว');
+      .update({ username, lightning_address: lightningAddress })
+      .eq('id', user.id);
+    if (updateError) {
+      toast.error('Update profile failed');
       setUpdateLoading(false);
       return;
     }
-    // update username ใน registered_users
-    const { error } = await supabase
-      .from('registered_users')
-      .update({ username })
-      .eq('public_key', user!.public_key);
-    if (error) {
-      toast.error('Update username failed');
-      setUpdateLoading(false);
-      return;
+    // ดึง relay เดิมจากฐานข้อมูล
+    const { data: oldRelays } = await supabase
+      .from('user_relays')
+      .select('id, url')
+      .eq('user_id', user.id);
+    const oldRelayUrls = (oldRelays || []).map((r: Relay) => r.url);
+    // หา relay ที่ต้องเพิ่ม
+    const relaysToAdd = relays.filter(r => !oldRelayUrls.includes(r.url));
+    // หา relay ที่ต้องลบ
+    const relaysToDelete = (oldRelays || []).filter((r: Relay) => !relays.some(nr => nr.url === r.url));
+    // เพิ่ม relay ใหม่
+    for (const relay of relaysToAdd) {
+      await supabase.from('user_relays').insert({ user_id: user.id, url: relay.url });
     }
-    toast.success('Username updated!');
+    // ลบ relay ที่ถูกลบออก
+    for (const relay of relaysToDelete) {
+      await supabase.from('user_relays').delete().eq('id', relay.id);
+    }
+    toast.success('Profile updated!');
     setUpdateLoading(false);
-    window.location.reload(); // force refresh user context
+    window.location.reload();
   };
 
   // ป้องกัน hydration mismatch: render loading ก่อน mount
@@ -183,9 +177,7 @@ export default function ProfilePage() {
                 <Card className="max-w-4xl mx-auto">
                   <CardHeader>
                     <CardTitle>Profile</CardTitle>
-                    <CardDescription>
-                      Your Nostr profile information
-                    </CardDescription>
+                    <CardDescription>Manage your Nostr profile, Lightning address, and relays in one place.</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-6">
@@ -197,7 +189,7 @@ export default function ProfilePage() {
                           height={96}
                           className="rounded-full border object-cover aspect-square"
                         />
-                        <div className="mt-2 text-lg font-bold">{nostrProfile?.name || user?.username}</div>
+                        <div className="mt-2 text-lg font-bold">{nostrProfile?.name || username}</div>
                         {nostrProfile?.about && <div className="text-sm text-muted-foreground text-center max-w-xs">{nostrProfile.about}</div>}
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -209,12 +201,44 @@ export default function ProfilePage() {
                             onChange={e => setUsername(e.target.value)}
                             disabled={updateLoading}
                           />
+                          <div className="text-xs text-muted-foreground mt-1">Your NIP-05: <b>{username}@nvrs.xyz</b></div>
                         </div>
                         <div className="space-y-2">
-                          <h3 className="text-sm font-medium">NIP-05 Address</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {username}@nvrs.xyz
-                          </p>
+                          <h3 className="text-sm font-medium">Lightning Address</h3>
+                          <input
+                            className="border rounded px-2 py-1 text-sm w-full"
+                            placeholder="your@walletofsatoshi.com"
+                            value={lightningAddress}
+                            onChange={e => setLightningAddress(e.target.value)}
+                            disabled={updateLoading}
+                          />
+                          <div className="text-xs text-muted-foreground mt-1">รับ sats ผ่าน <b>{username}@nvrs.xyz</b> (proxy ไปยัง Lightning Address ที่คุณกรอกไว้)</div>
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <h3 className="text-sm font-medium mb-2">Your Relays</h3>
+                          <div className="flex gap-2 mb-2">
+                            <input
+                              className="border rounded px-2 py-1 text-sm flex-1"
+                              placeholder="wss://your-relay.example"
+                              value={newRelay}
+                              onChange={e => setNewRelay(e.target.value)}
+                              disabled={updateLoading}
+                            />
+                            <Button size="sm" onClick={handleAddRelay} disabled={updateLoading || !newRelay.trim()}>
+                              Add Relay
+                            </Button>
+                          </div>
+                          <ul className="space-y-2">
+                            {relays.length === 0 && <li className="text-sm text-muted-foreground">No relays added yet.</li>}
+                            {relays.map(relay => (
+                              <li key={relay.url} className="flex items-center gap-2">
+                                <span className="text-sm">{relay.url}</span>
+                                <Button size="icon" variant="ghost" onClick={() => handleDeleteRelay(relay.url)} disabled={updateLoading}>
+                                  ✕
+                                </Button>
+                              </li>
+                            ))}
+                          </ul>
                         </div>
                         <div className="space-y-2">
                           <h3 className="text-sm font-medium">Public Key</h3>
@@ -246,33 +270,6 @@ export default function ProfilePage() {
                             {new Date(user.created_at).toLocaleDateString()}
                           </p>
                         </div>
-                      </div>
-                      {/* Relay Management Section */}
-                      <div className="mt-8">
-                        <h3 className="text-sm font-medium mb-2">Your Relays</h3>
-                        <div className="flex gap-2 mb-4">
-                          <input
-                            className="border rounded px-2 py-1 text-sm flex-1"
-                            placeholder="wss://your-relay.example"
-                            value={newRelay}
-                            onChange={e => setNewRelay(e.target.value)}
-                            disabled={relayLoading}
-                          />
-                          <Button size="sm" onClick={handleAddRelay} disabled={relayLoading || !newRelay.trim()}>
-                            Add Relay
-                          </Button>
-                        </div>
-                        <ul className="space-y-2">
-                          {relays.length === 0 && <li className="text-sm text-muted-foreground">No relays added yet.</li>}
-                          {relays.map(relay => (
-                            <li key={relay.id} className="flex items-center gap-2">
-                              <span className="text-sm">{relay.url}</span>
-                              <Button size="icon" variant="ghost" onClick={() => handleDeleteRelay(relay.id)} disabled={relayLoading}>
-                                ✕
-                              </Button>
-                            </li>
-                          ))}
-                        </ul>
                       </div>
                       <div className="flex justify-end mt-6">
                         <Button variant="outline" onClick={handleUpdateProfile} disabled={updateLoading}>
