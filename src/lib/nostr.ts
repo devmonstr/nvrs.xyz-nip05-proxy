@@ -11,6 +11,7 @@ export interface NostrProfileMetadata {
 
 const POPULAR_RELAYS = [
   "wss://relay.damus.io",
+  "wss://relay.primal.net",
   "wss://relay.notoshi.win",
   "wss://nos.lol",
   "wss://relay.nostr.band",
