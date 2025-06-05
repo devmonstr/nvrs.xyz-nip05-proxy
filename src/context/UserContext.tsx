@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { fetchNostrProfile, NostrProfileMetadata } from "@/lib/nostr";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
@@ -13,14 +14,6 @@ interface User {
   public_key: string;
   created_at: string;
   lightning_address?: string;
-}
-
-interface NostrProfileMetadata {
-  name?: string;
-  about?: string;
-  picture?: string;
-  nip05?: string;
-  banner?: string;
 }
 
 interface UserContextType {
@@ -53,21 +46,11 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
     setUser(data || null);
     // Nostr relay
     try {
-      const ws = new window.WebSocket("wss://relay.damus.io");
-      ws.onopen = () => {
-        ws.send(JSON.stringify(["REQ", "profile-meta-0", { kinds: [0], authors: [publicKey] }]));
-      };
-      ws.onmessage = (event) => {
-        try {
-          const msg = JSON.parse(event.data);
-          if (msg[0] === "EVENT" && msg[2]?.kind === 0 && msg[2]?.content) {
-            setNostrProfile(JSON.parse(msg[2].content));
-            ws.close();
-          }
-        } catch {}
-      };
-      ws.onerror = () => ws.close();
-    } catch {}
+      const profile = await fetchNostrProfile(publicKey);
+      setNostrProfile(profile);
+    } catch {
+      setNostrProfile(null);
+    }
     setLoading(false);
   }, []);
 
@@ -94,7 +77,10 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
         .eq('public_key', publicKey)
         .single();
       if (!data) {
-        alert('ยังไม่ได้ลงทะเบียน กรุณา Register ก่อน');
+        alert('You have not registered yet. Please register first.');
+        if (typeof window !== 'undefined') {
+          window.location.href = '/register';
+        }
         setLoading(false);
         return;
       }

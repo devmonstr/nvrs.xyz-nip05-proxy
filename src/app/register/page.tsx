@@ -14,23 +14,21 @@ import {
 } from "@/components/ui/sidebar";
 import { createClient } from '@supabase/supabase-js';
 import { nip19 } from 'nostr-tools';
-import { useUser } from "@/context/UserContext";
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
   const [pubkey, setPubkey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { refreshUser } = useUser();
 
-  const supabaseUrl = "https://xoeojubalyanizqeyimp.supabase.co";
-  const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvZW9qdWJhbHlhbml6cWV5aW1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczNzU1MTgsImV4cCI6MjA2Mjk1MTUxOH0.SZMZSFPdzhv7EaAotlNs1DPgzH1j4rjYNYX0U9K0V1Q";
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // แปลง npub เป็น hex ถ้าจำเป็น
+    // Convert npub to hex if needed
     let hexPubkey = pubkey.trim();
     if (hexPubkey.startsWith('npub')) {
       try {
@@ -38,27 +36,27 @@ export default function RegisterPage() {
         if (type !== 'npub' || typeof data !== 'string') throw new Error('Invalid npub');
         hexPubkey = data;
       } catch {
-        toast.error('รูปแบบ npub ไม่ถูกต้อง');
+        toast.error('Invalid npub format');
         setIsLoading(false);
         return;
       }
     }
-    // ตรวจสอบ hex 64 ตัว
+    // Check for 64-char hex
     if (!/^[0-9a-fA-F]{64}$/.test(hexPubkey)) {
-      toast.error('Public key ต้องเป็น hex 64 ตัว หรือ npub ที่ถูกต้อง');
+      toast.error('Public key must be a valid 64-character hex or npub');
       setIsLoading(false);
       return;
     }
 
     try {
-      // ตรวจสอบ username หรือ pubkey ซ้ำ
+      // Check for duplicate username or pubkey
       const { data: userByName } = await supabase
         .from('registered_users')
         .select('id')
         .eq('username', username)
         .single();
       if (userByName) {
-        toast.error('Username นี้ถูกใช้ไปแล้ว');
+        toast.error('This username is already taken');
         setIsLoading(false);
         return;
       }
@@ -68,11 +66,11 @@ export default function RegisterPage() {
         .eq('public_key', hexPubkey)
         .single();
       if (userByPubkey) {
-        toast.error('Public key นี้ถูกใช้ไปแล้ว');
+        toast.error('This public key is already taken');
         setIsLoading(false);
         return;
       }
-      // บันทึกลง supabase
+      // Insert into supabase
       const { error } = await supabase
         .from('registered_users')
         .insert({ username, public_key: hexPubkey });
@@ -80,8 +78,6 @@ export default function RegisterPage() {
       toast.success('Registration successful!');
       setUsername('');
       setPubkey('');
-      sessionStorage.setItem('public_key', hexPubkey);
-      await refreshUser();
     } catch (error) {
       console.error('Registration error:', error);
       toast.error('Registration failed. Please try again.');
@@ -92,15 +88,15 @@ export default function RegisterPage() {
 
   const handleGetAlby = async () => {
     if (!window.nostr) {
-      toast.error('กรุณาติดตั้ง Nostr extension เช่น Alby ก่อน');
+      toast.error('Please install a Nostr extension such as Alby first');
       return;
     }
     try {
       const pk = await window.nostr.getPublicKey();
       setPubkey(pk);
-      toast.success('ดึง public key สำเร็จ');
+      toast.success('Successfully fetched public key');
     } catch {
-      toast.error('ไม่สามารถดึง public key ได้');
+      toast.error('Failed to fetch public key');
     }
   };
 
