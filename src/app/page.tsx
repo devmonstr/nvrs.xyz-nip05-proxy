@@ -28,11 +28,10 @@ export default function Page() {
               <div className="px-4 lg:px-6">
                 <div className="mx-auto max-w-3xl text-center">
                   <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
-                    Welcome to NIP-05 Free Registration
+                    Welcome to NIP-05 & Lightning Proxy Platform
                   </h1>
                   <p className="mt-6 text-lg leading-8 text-muted-foreground">
-                    Get your free NIP-05 address to verify your Nostr identity. 
-                    Enhance your credibility and make your Nostr presence more professional.
+                    Get your free NIP-05 address, manage relays, and receive Lightning payments with your own domain. Enhance your Nostr experience with powerful features and a seamless dashboard.
                   </p>
                   <div className="mt-10 flex items-center justify-center gap-x-6">
                     <Button asChild size="lg">
@@ -48,12 +47,11 @@ export default function Page() {
                   <Card>
                     <CardHeader>
                       <IconShieldCheck className="h-8 w-8 text-primary" />
-                      <CardTitle>Identity Verification</CardTitle>
+                      <CardTitle>NIP-05 Identity</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <CardDescription>
-                        Verify your Nostr identity with a trusted NIP-05 address. 
-                        Build trust with other Nostr users and enhance your online presence.
+                        Register and verify your Nostr identity with a trusted NIP-05 address (e.g. <b>yourname@nvrs.xyz</b>). Build trust and credibility in the Nostr network.
                       </CardDescription>
                     </CardContent>
                   </Card>
@@ -65,8 +63,7 @@ export default function Page() {
                     </CardHeader>
                     <CardContent>
                       <CardDescription>
-                        Simple and straightforward registration process. 
-                        Just provide your Nostr public key and choose your preferred username.
+                        Simple and straightforward registration process. Just provide your Nostr public key and choose your preferred username. No fees, no hassle.
                       </CardDescription>
                     </CardContent>
                   </Card>
@@ -78,8 +75,43 @@ export default function Page() {
                     </CardHeader>
                     <CardContent>
                       <CardDescription>
-                        Completely free NIP-05 address registration. 
-                        No hidden fees or premium features. Everyone deserves a verified identity.
+                        Completely free NIP-05 address registration. No hidden fees or premium features. Everyone deserves a verified identity.
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <IconArrowRight className="h-8 w-8 text-primary" />
+                      <CardTitle>Lightning Address Proxy</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription>
+                        Receive Bitcoin Lightning payments via <b>yourname@nvrs.xyz</b>. Payments are automatically proxied to your real Lightning address (e.g. <b>your@walletofsatoshi.com</b>), making it easy to receive sats anywhere.
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <IconCheck className="h-8 w-8 text-primary" />
+                      <CardTitle>Relay Management</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription>
+                        Add, remove, and manage your Nostr relays directly from your profile. Keep your relay list up-to-date and in sync with your identity.
+                      </CardDescription>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <IconShieldCheck className="h-8 w-8 text-primary" />
+                      <CardTitle>Modern Dashboard</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <CardDescription>
+                        Clean, user-friendly dashboard for managing your Nostr identity, Lightning address, and relays. Designed for the best user experience.
                       </CardDescription>
                     </CardContent>
                   </Card>
@@ -90,7 +122,7 @@ export default function Page() {
                     Ready to get started?
                   </h2>
                   <p className="mt-4 text-lg text-muted-foreground">
-                    Join thousands of Nostr users who have already verified their identity.
+                    Join thousands of Nostr users who have already verified their identity and receive Lightning payments with ease.
                   </p>
                   <div className="mt-8">
                     <Button asChild size="lg" variant="outline">

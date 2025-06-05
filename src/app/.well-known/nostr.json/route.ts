@@ -10,37 +10,47 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const name = searchParams.get('name');
     if (!name) {
-      // ไม่มี name query string
+      // No name query string
       return NextResponse.json({ names: {} });
     }
-    // ดึง user จาก Supabase ตาม username
+    // Fetch user from Supabase by username
     const { data, error } = await supabase
       .from('registered_users')
       .select('id, public_key')
       .eq('username', name)
       .single();
     if (error || !data) {
-      // ไม่พบ user
+      // User not found
       return NextResponse.json({ names: {} });
     }
     const pubkey = data.public_key;
     const userId = data.id;
-    // ดึง relay ของ user จาก user_relays (ใช้ user_id)
+    // Fetch user's relays from user_relays (by user_id)
     const { data: relaysData } = await supabase
       .from('user_relays')
       .select('url')
       .eq('user_id', userId);
     const relaysArr = relaysData ? relaysData.map((r: { url: string }) => r.url) : [];
-    // คืนค่า names และ relays ตาม NIP-05
+    // Return names and relays according to NIP-05
     return NextResponse.json({
       names: { [name]: pubkey },
       relays: { [pubkey]: relaysArr }
+    }, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      }
     });
   } catch (error) {
     console.error('NIP-05 verification error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500 }
+      { status: 500, headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      }}
     );
   }
 } 

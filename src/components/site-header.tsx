@@ -13,6 +13,14 @@ export function SiteHeader() {
         return "Welcome"
       case "/register":
         return "Register NIP-05"
+      case "/profile":
+        return "Profile"
+      case "/document":
+        return "Document"
+      case "/about":
+        return "About"
+      case "/community":
+        return "Community"
       default:
         return "Nostr Dashboard"
     }

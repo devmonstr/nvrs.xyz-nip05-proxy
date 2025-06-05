@@ -1,7 +1,8 @@
 {
-  "name": "my-dashboard",
+  "name": "nvrs.xyz-nip05-proxy",
   "version": "0.1.0",
   "private": true,
+  "description": "A Nostr NIP-05 and Lightning Address proxy dashboard for nvrs.xyz.",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",

@@ -20,9 +20,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
-// Helper: ตรวจสอบ login จาก sessionStorage
+// Helper: Check login from sessionStorage
 
-// เพิ่ม: Relay management helpers
+// Add: Relay management helpers
 interface Relay {
   id?: number;
   url: string;
@@ -42,7 +42,7 @@ export default function ProfilePage() {
     if (user) {
       setUsername(user.username || '');
       setLightningAddress(user.lightning_address || '');
-      // โหลด relay จาก Supabase
+      // Load relays from Supabase
       const fetchRelays = async () => {
         const { data, error } = await supabase
           .from('user_relays')
@@ -57,19 +57,19 @@ export default function ProfilePage() {
     }
   }, [user, loading, router]);
 
-  // เพิ่ม relay ชั่วคราวใน state (ยังไม่บันทึก)
+  // Add relay temporarily in state (not yet saved)
   const handleAddRelay = () => {
     const url = newRelay.trim();
     if (!url) return;
     if (relays.some(r => r.url === url)) {
-      toast.error('Relay นี้ถูกเพิ่มไว้แล้ว');
+      toast.error('This relay has already been added');
       return;
     }
     setRelays([...relays, { url }]);
     setNewRelay('');
   };
 
-  // ลบ relay ชั่วคราวใน state (ยังไม่บันทึก)
+  // Remove relay temporarily in state (not yet saved)
   const handleDeleteRelay = (url: string) => {
     setRelays(relays.filter(r => r.url !== url));
   };
@@ -78,15 +78,15 @@ export default function ProfilePage() {
   const handleUpdateProfile = async () => {
     if (!user) return;
     if (!username.trim()) {
-      toast.error('Username ห้ามว่าง');
+      toast.error('Username is required');
       return;
     }
     if (!lightningAddress.trim()) {
-      toast.error('Lightning Address ห้ามว่าง');
+      toast.error('Lightning Address is required');
       return;
     }
     setUpdateLoading(true);
-    // ตรวจสอบ username ซ้ำ (ถ้าเปลี่ยน)
+    // Check for duplicate username (if changed)
     if (username !== user.username) {
       const { data: userByName } = await supabase
         .from('registered_users')
@@ -94,12 +94,12 @@ export default function ProfilePage() {
         .eq('username', username)
         .single();
       if (userByName) {
-        toast.error('Username นี้ถูกใช้ไปแล้ว');
+        toast.error('This username is already taken');
         setUpdateLoading(false);
         return;
       }
     }
-    // อัปเดต username + lightning address
+    // Update username + lightning address
     const { error: updateError } = await supabase
       .from('registered_users')
       .update({ username, lightning_address: lightningAddress })
@@ -109,21 +109,21 @@ export default function ProfilePage() {
       setUpdateLoading(false);
       return;
     }
-    // ดึง relay เดิมจากฐานข้อมูล
+    // Fetch old relays from database
     const { data: oldRelays } = await supabase
       .from('user_relays')
       .select('id, url')
       .eq('user_id', user.id);
     const oldRelayUrls = (oldRelays || []).map((r: Relay) => r.url);
-    // หา relay ที่ต้องเพิ่ม
+    // Find relays to add
     const relaysToAdd = relays.filter(r => !oldRelayUrls.includes(r.url));
-    // หา relay ที่ต้องลบ
+    // Find relays to delete
     const relaysToDelete = (oldRelays || []).filter((r: Relay) => !relays.some(nr => nr.url === r.url));
-    // เพิ่ม relay ใหม่
+    // Add new relays
     for (const relay of relaysToAdd) {
       await supabase.from('user_relays').insert({ user_id: user.id, url: relay.url });
     }
-    // ลบ relay ที่ถูกลบออก
+    // Delete removed relays
     for (const relay of relaysToDelete) {
       await supabase.from('user_relays').delete().eq('id', relay.id);
     }
@@ -201,7 +201,25 @@ export default function ProfilePage() {
                             onChange={e => setUsername(e.target.value)}
                             disabled={updateLoading}
                           />
-                          <div className="text-xs text-muted-foreground mt-1">Your NIP-05: <b>{username}@nvrs.xyz</b></div>
+                          <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                            Your NIP-05: <b>{username}@nvrs.xyz</b>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              aria-label="Copy NIP-05"
+                              title="Copy NIP-05"
+                              onClick={async () => {
+                                try {
+                                  await navigator.clipboard.writeText(`${username}@nvrs.xyz`);
+                                  toast.success('Copied!');
+                                } catch {
+                                  toast.error('Copy failed');
+                                }
+                              }}
+                            >
+                              <Copy className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
                         <div className="space-y-2">
                           <h3 className="text-sm font-medium">Lightning Address</h3>
@@ -212,7 +230,7 @@ export default function ProfilePage() {
                             onChange={e => setLightningAddress(e.target.value)}
                             disabled={updateLoading}
                           />
-                          <div className="text-xs text-muted-foreground mt-1">รับ sats ผ่าน <b>{username}@nvrs.xyz</b> (proxy ไปยัง Lightning Address ที่คุณกรอกไว้)</div>
+                          <div className="text-xs text-muted-foreground mt-1">Receive sats via <b>{username}@nvrs.xyz</b> (proxied to your configured Lightning Address)</div>
                         </div>
                         <div className="space-y-2 md:col-span-2">
                           <h3 className="text-sm font-medium mb-2">Your Relays</h3>
