@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# nvrs.xyz NIP-05 Proxy
+
+A modern, open-source dashboard for managing your Nostr identity, relays, and Lightning Address proxying on nvrs.xyz.  
+Built with Next.js, Supabase, and AI-assisted development.
+
+![screenshot](public/screenshot.png) <!-- (เพิ่ม screenshot ถ้ามี) -->
+
+---
+
+## Features
+
+- **NIP-05 Identity**: Register and verify your Nostr identity with a trusted NIP-05 address (e.g. `yourname@nvrs.xyz`).
+- **Lightning Address Proxy**: Receive Bitcoin Lightning payments via your NIP-05 address, automatically proxied to your real Lightning Address.
+- **Relay Management**: Add, remove, and manage your Nostr relays directly from your profile.
+- **Modern Dashboard**: Clean, responsive UI with dark/light mode, built for the best user experience.
+- **Community Page**: Discover and search all registered users, with merged Nostr metadata from multiple relays.
+- **Secure & Free**: No fees, no hidden costs. Your data is stored securely in Supabase and can be deleted at any time.
+
+---
 
 ## Getting Started
 
-First, run the development server:
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/nvrs.xyz-nip05-proxy.git
+   cd nvrs.xyz-nip05-proxy
+   ```
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+2. **Install dependencies**
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. **Set up environment variables**
+   - Copy `.env.example` to `.env.local` and fill in your Supabase credentials and any other required secrets.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+4. **Run the development server**
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## How It Works
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Register NIP-05**: Sign up with your Nostr public key and username to get a free NIP-05 address.
+- **Manage Profile**: Edit your username, Lightning Address, and relay list in one place.
+- **Receive Lightning Payments**: Use your NIP-05 address as a Lightning Address; payments are proxied to your configured wallet.
+- **Community**: Browse all users and their Nostr metadata, fetched and merged from popular relays.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Tech Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- [Next.js](https://nextjs.org/) (App Router)
+- [Supabase](https://supabase.com/) (Database & Auth)
+- [next-themes](https://github.com/pacocoursey/next-themes) (Dark/Light mode)
+- [Tailwind CSS](https://tailwindcss.com/) (UI styling)
+- [Nostr Tools](https://github.com/nbd-wtf/nostr-tools) (Nostr protocol)
+- [Radix UI](https://www.radix-ui.com/) & [shadcn/ui](https://ui.shadcn.com/) (UI components)
+- [TypeScript](https://www.typescriptlang.org/)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+## FAQ
+
+**What is NIP-05?**  
+NIP-05 is a standard for identity verification on Nostr, using the format `username@domain` (e.g. `yourname@nvrs.xyz`).
+
+**What is Lightning Address Proxy?**  
+It lets you receive sats using your NIP-05 address. The system proxies payments to your configured Lightning Address (e.g. `your@walletofsatoshi.com`).
+
+**Is my data safe?**  
+Your data is stored securely in Supabase. You can delete your account at any time.
+
+**Can I change my Username or Lightning Address?**  
+Yes, you can update them anytime from the Profile page.
+
+**Which apps are supported?**  
+All Nostr apps that support NIP-05 and all Lightning apps that support LNURL-pay (e.g. Wallet of Satoshi, Alby, Zeus, etc.)
+
+---
+
+## License
+
+MIT
+
+---
+
+> This project was built with the help of AI tools for rapid prototyping, code generation, and UI/UX design.
