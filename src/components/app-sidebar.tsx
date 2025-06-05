@@ -14,6 +14,7 @@ import {
   IconFileWord,
 } from "@tabler/icons-react"
 import Link from "next/link"
+import { useUser } from "@/context/UserContext"
 
 import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
@@ -29,61 +30,62 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
-const data = {
-  navMain: [
-    {
-      title: "Dashboard",
-      url: "/",
-      icon: IconDashboard,
-    },
-    {
-      title: "Register NIP-05",
-      url: "/register",
-      icon: IconUserPlus,
-    },
-    {
-      title: "Profile",
-      url: "/profile",
-      icon: IconUsers,
-    },
-  ],
-  navSecondary: [
-    {
-      title: "Settings",
-      url: "#",
-      icon: IconSettings,
-    },
-    {
-      title: "Get Help",
-      url: "#",
-      icon: IconHelp,
-    },
-    {
-      title: "Search",
-      url: "#",
-      icon: IconSearch,
-    },
-  ],
-  documents: [
-    {
-      name: "Data Library",
-      url: "#",
-      icon: IconDatabase,
-    },
-    {
-      name: "Reports",
-      url: "#",
-      icon: IconReport,
-    },
-    {
-      name: "Word Assistant",
-      url: "#",
-      icon: IconFileWord,
-    },
-  ],
-}
+const navMainRaw = [
+  {
+    title: "Dashboard",
+    url: "/",
+    icon: IconDashboard,
+  },
+  {
+    title: "Register NIP-05",
+    url: "/register",
+    icon: IconUserPlus,
+  },
+  {
+    title: "Profile",
+    url: "/profile",
+    icon: IconUsers,
+  },
+];
+const navSecondary = [
+  {
+    title: "Settings",
+    url: "#",
+    icon: IconSettings,
+  },
+  {
+    title: "Get Help",
+    url: "#",
+    icon: IconHelp,
+  },
+  {
+    title: "Search",
+    url: "#",
+    icon: IconSearch,
+  },
+];
+const documents = [
+  {
+    name: "Data Library",
+    url: "#",
+    icon: IconDatabase,
+  },
+  {
+    name: "Reports",
+    url: "#",
+    icon: IconReport,
+  },
+  {
+    name: "Word Assistant",
+    url: "#",
+    icon: IconFileWord,
+  },
+];
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user } = useUser();
+  const navMain = user ? navMainRaw : navMainRaw.filter(item => item.title !== 'Profile');
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -102,9 +104,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavDocuments items={data.documents} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        <NavMain items={navMain} />
+        <NavDocuments items={documents} />
+        <NavSecondary items={navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

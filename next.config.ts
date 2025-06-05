@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    domains: ["damus.io", "m.primal.net"],
+  },
 };
 
 export default nextConfig;

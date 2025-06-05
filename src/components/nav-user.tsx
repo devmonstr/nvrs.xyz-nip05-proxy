@@ -1,9 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useUser } from "@/context/UserContext"
 import {
   IconCreditCard,
-  IconDotsVertical,
   IconLogout,
   IconUserCircle,
 } from "@tabler/icons-react"
@@ -26,10 +25,8 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  useSidebar,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
-import { toast } from "sonner"
 
 declare global {
   interface Window {
@@ -39,76 +36,15 @@ declare global {
   }
 }
 
-interface User {
-  name: string
-  email: string
-  avatar: string
-  pubkey: string
-}
-
 export function NavUser() {
-  const { isMobile } = useSidebar()
-  const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
-
-  useEffect(() => {
-    // Check if user is already logged in
-    const storedPubkey = sessionStorage.getItem('public_key')
-    if (storedPubkey) {
-      setUser({
-        name: storedPubkey.slice(0, 8),
-        email: `${storedPubkey.slice(0, 8)}@nvrs.xyz`,
-        avatar: `/avatars/default.jpg`,
-        pubkey: storedPubkey
-      })
-    }
-  }, [])
-
-  const handleLogin = async () => {
-    setIsLoading(true)
-    try {
-      if (!window.nostr) {
-        toast.error('Please install a Nostr extension like Alby')
-        return
-      }
-
-      const publicKey = await window.nostr.getPublicKey()
-      if (!publicKey) {
-        toast.error('Unable to retrieve Public Key')
-        return
-      }
-
-      // Store public key in sessionStorage
-      sessionStorage.setItem('public_key', publicKey)
-      
-      setUser({
-        name: publicKey.slice(0, 8),
-        email: `${publicKey.slice(0, 8)}@nvrs.xyz`,
-        avatar: `/avatars/default.jpg`,
-        pubkey: publicKey
-      })
-
-      toast.success('Login successful')
-    } catch (error) {
-      console.error('Login error:', error)
-      toast.error('Login failed')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleLogout = () => {
-    sessionStorage.removeItem('public_key')
-    setUser(null)
-    toast.success('Logged out successfully')
-  }
+  const { user, nostrProfile, loading: isLoading, login, logout } = useUser();
 
   if (!user) {
     return (
       <SidebarMenu>
         <SidebarMenuItem>
           <Button
-            onClick={handleLogin}
+            onClick={login}
             disabled={isLoading}
             className="w-full"
             variant="outline"
@@ -129,54 +65,39 @@ export function NavUser() {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Avatar className="h-8 w-8 rounded-lg grayscale">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+              <Avatar>
+                <AvatarImage
+                  src={nostrProfile?.picture || "/avatars/default.jpg"}
+                  alt={user.username}
+                  className="rounded-full object-cover"
+                />
+                <AvatarFallback>
+                  {user.username?.[0] || "U"}
+                </AvatarFallback>
               </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
-                <span className="text-muted-foreground truncate text-xs">
-                  {user.email}
-                </span>
-              </div>
-              <IconDotsVertical className="ml-auto size-4" />
+              <span className="ml-2 text-base font-medium">
+                {nostrProfile?.name || user.username}
+              </span>
             </SidebarMenuButton>
           </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
-            align="end"
-            sideOffset={4}
-          >
-            <DropdownMenuLabel className="p-0 font-normal">
-              <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback className="rounded-lg">{user.name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">{user.name}</span>
-                  <span className="text-muted-foreground truncate text-xs">
-                    {user.email}
-                  </span>
-                </div>
-              </div>
-            </DropdownMenuLabel>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => window.location.href = '/profile'}>
-                <IconUserCircle />
-                Profile
+              <DropdownMenuItem asChild>
+                <a href="/profile">
+                  <IconUserCircle className="mr-2 h-4 w-4" /> Profile
+                </a>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => window.location.href = '/register'}>
-                <IconCreditCard />
-                Register NIP-05
+              <DropdownMenuItem asChild>
+                <a href="/settings">
+                  <IconCreditCard className="mr-2 h-4 w-4" /> Settings
+                </a>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
-              <IconLogout />
-              Log out
+            <DropdownMenuItem onClick={logout}>
+              <IconLogout className="mr-2 h-4 w-4" /> Logout
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

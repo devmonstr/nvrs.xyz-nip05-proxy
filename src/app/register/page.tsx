@@ -12,40 +12,95 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar";
+import { createClient } from '@supabase/supabase-js';
+import { nip19 } from 'nostr-tools';
+import { useUser } from "@/context/UserContext";
 
 export default function RegisterPage() {
   const [username, setUsername] = useState('');
   const [pubkey, setPubkey] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const { refreshUser } = useUser();
+
+  const supabaseUrl = "https://xoeojubalyanizqeyimp.supabase.co";
+  const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhvZW9qdWJhbHlhbml6cWV5aW1wIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDczNzU1MTgsImV4cCI6MjA2Mjk1MTUxOH0.SZMZSFPdzhv7EaAotlNs1DPgzH1j4rjYNYX0U9K0V1Q";
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    try {
-      const response = await fetch('/api/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username,
-          pubkey,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Registration failed');
+    // แปลง npub เป็น hex ถ้าจำเป็น
+    let hexPubkey = pubkey.trim();
+    if (hexPubkey.startsWith('npub')) {
+      try {
+        const { type, data } = nip19.decode(hexPubkey);
+        if (type !== 'npub' || typeof data !== 'string') throw new Error('Invalid npub');
+        hexPubkey = data;
+      } catch {
+        toast.error('รูปแบบ npub ไม่ถูกต้อง');
+        setIsLoading(false);
+        return;
       }
+    }
+    // ตรวจสอบ hex 64 ตัว
+    if (!/^[0-9a-fA-F]{64}$/.test(hexPubkey)) {
+      toast.error('Public key ต้องเป็น hex 64 ตัว หรือ npub ที่ถูกต้อง');
+      setIsLoading(false);
+      return;
+    }
 
-      await response.json();
+    try {
+      // ตรวจสอบ username หรือ pubkey ซ้ำ
+      const { data: userByName } = await supabase
+        .from('registered_users')
+        .select('id')
+        .eq('username', username)
+        .single();
+      if (userByName) {
+        toast.error('Username นี้ถูกใช้ไปแล้ว');
+        setIsLoading(false);
+        return;
+      }
+      const { data: userByPubkey } = await supabase
+        .from('registered_users')
+        .select('id')
+        .eq('public_key', hexPubkey)
+        .single();
+      if (userByPubkey) {
+        toast.error('Public key นี้ถูกใช้ไปแล้ว');
+        setIsLoading(false);
+        return;
+      }
+      // บันทึกลง supabase
+      const { error } = await supabase
+        .from('registered_users')
+        .insert({ username, public_key: hexPubkey });
+      if (error) throw error;
       toast.success('Registration successful!');
-      // Redirect or show success message
+      setUsername('');
+      setPubkey('');
+      sessionStorage.setItem('public_key', hexPubkey);
+      await refreshUser();
     } catch (error) {
       console.error('Registration error:', error);
       toast.error('Registration failed. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGetAlby = async () => {
+    if (!window.nostr) {
+      toast.error('กรุณาติดตั้ง Nostr extension เช่น Alby ก่อน');
+      return;
+    }
+    try {
+      const pk = await window.nostr.getPublicKey();
+      setPubkey(pk);
+      toast.success('ดึง public key สำเร็จ');
+    } catch {
+      toast.error('ไม่สามารถดึง public key ได้');
     }
   };
 
@@ -90,13 +145,18 @@ export default function RegisterPage() {
                       
                       <div className="space-y-2">
                         <Label htmlFor="pubkey">Nostr Public Key</Label>
-                        <Input
-                          id="pubkey"
-                          placeholder="npub1..."
-                          value={pubkey}
-                          onChange={(e) => setPubkey(e.target.value)}
-                          required
-                        />
+                        <div className="flex gap-2">
+                          <Input
+                            id="pubkey"
+                            placeholder="npub1..."
+                            value={pubkey}
+                            onChange={(e) => setPubkey(e.target.value)}
+                            required
+                          />
+                          <Button type="button" variant="outline" onClick={handleGetAlby}>
+                            Get from Alby
+                          </Button>
+                        </div>
                       </div>
 
                       <Button type="submit" className="w-full" disabled={isLoading}>
