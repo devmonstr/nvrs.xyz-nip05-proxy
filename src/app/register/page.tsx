@@ -78,6 +78,27 @@ export default function RegisterPage() {
       toast.success('Registration successful!');
       setUsername('');
       setPubkey('');
+
+      // Add default relays for new user
+      const defaultRelays = [
+        "wss://relay.siamdev.cc",
+        "wss://relayrs.notoshi.win/",
+        "wss://relay.notoshi.win",
+        "wss://nos.lol",
+        "wss://relay.damus.io",
+        "wss://relay.nostr.band",
+        "wss://yabu.me"
+      ];
+      // Get the new user's id
+      const { data: newUser } = await supabase
+        .from('registered_users')
+        .select('id')
+        .eq('public_key', hexPubkey)
+        .single();
+      if (newUser) {
+        const relayInserts = defaultRelays.map(url => ({ user_id: newUser.id, url }));
+        await supabase.from('user_relays').insert(relayInserts);
+      }
     } catch (error) {
       console.error('Registration error:', error);
       toast.error('Registration failed. Please try again.');

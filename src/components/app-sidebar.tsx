@@ -6,7 +6,6 @@ import {
   IconHelp,
   IconBook,
   IconInnerShadowTop,
-  IconSettings,
   IconUsers,
   IconUserPlus,
 
@@ -50,12 +49,6 @@ const navMainRaw = [
   },
 ];
 const navSecondary = [
-  
-  {
-    title: "Settings",
-    url: "#",
-    icon: IconSettings,
-  },
   {
     title: "About",
     url: "/about",
