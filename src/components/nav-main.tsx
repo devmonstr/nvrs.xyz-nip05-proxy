@@ -1,6 +1,6 @@
 "use client"
 
-import { IconSun, IconMoon, IconBell, type Icon } from "@tabler/icons-react"
+import { IconSun, IconMoon, type Icon } from "@tabler/icons-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useTheme } from "next-themes"
@@ -29,9 +29,6 @@ export function NavMain({
   const toggleTheme = () => {
     setTheme(isDark ? 'light' : 'dark');
   };
-  const handleNotification = () => {
-    alert('No new notifications.');
-  };
 
   return (
     <SidebarGroup>
@@ -46,16 +43,6 @@ export function NavMain({
             >
               {isDark ? <IconSun /> : <IconMoon />}
               <span className="sr-only">Toggle Theme</span>
-            </Button>
-            <Button
-              size="icon"
-              className="size-8 group-data-[collapsible=icon]:opacity-0"
-              variant="outline"
-              onClick={handleNotification}
-              aria-label="Notifications"
-            >
-              <IconBell />
-              <span className="sr-only">Notifications</span>
             </Button>
           </SidebarMenuItem>
         </SidebarMenu>
