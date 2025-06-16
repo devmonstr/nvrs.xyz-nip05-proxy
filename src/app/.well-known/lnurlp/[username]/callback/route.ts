@@ -7,11 +7,11 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export async function GET(req: Request, { params }: { params: { username: string } }) {
   const { username } = params;
-
   if (!username) {
     return corsResponse({ status: 'ERROR', reason: 'No username provided' }, 400);
   }
 
+  // Get lightning_address from Supabase
   const { data, error } = await supabase
     .from('registered_users')
     .select('lightning_address')
@@ -27,40 +27,25 @@ export async function GET(req: Request, { params }: { params: { username: string
     return corsResponse({ status: 'ERROR', reason: 'Invalid lightning address' }, 400);
   }
 
-  return corsResponse({
-    status: 'OK',
-    callback: `https://nvrs.xyz/.well-known/lnurlp/${username}/callback`,
-    tag: 'payRequest',
-    maxSendable: 100000000,
-    minSendable: 1000,
-    metadata: JSON.stringify([
-      ["text/plain", `Pay to ${username}@nvrs.xyz`],
-      ["text/identifier", `${username}@nvrs.xyz`]
-    ]),
-    commentAllowed: 120,
-    payerData: {
-      name: { mandatory: false },
-      email: { mandatory: false }
-    }
-  });
+  // Forward query string to the real callback
+  const url = new URL(req.url);
+  const search = url.search;
+  const realCallback = `https://${lnDomain}/.well-known/lnurlp/${lnName}${search}`;
+
+  try {
+    const lnurlRes = await fetch(realCallback, {
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+    const lnurlData = await lnurlRes.json();
+    return corsResponse(lnurlData, lnurlRes.status);
+  } catch {
+    return corsResponse({ status: 'ERROR', reason: 'Proxy error' }, 502);
+  }
 }
 
-interface LnurlPayResponse {
-  status: 'OK' | 'ERROR';
-  reason?: string;
-  callback?: string;
-  tag?: string;
-  maxSendable?: number;
-  minSendable?: number;
-  metadata?: string;
-  commentAllowed?: number;
-  payerData?: {
-    name?: { mandatory: boolean };
-    email?: { mandatory: boolean };
-  };
-}
-
-function corsResponse(body: LnurlPayResponse, status: number = 200) {
+function corsResponse(body: unknown, status: number = 200) {
   return NextResponse.json(body, {
     status,
     headers: {
@@ -69,5 +54,4 @@ function corsResponse(body: LnurlPayResponse, status: number = 200) {
       'Access-Control-Allow-Headers': 'Content-Type',
     }
   });
-}
-
+} 
