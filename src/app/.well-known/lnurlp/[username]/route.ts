@@ -9,44 +9,44 @@ export async function GET(req: Request, { params }: { params: { username: string
   const { username } = params;
 
   if (!username) {
-    return corsResponse({ status: 'ERROR', reason: 'No username provided' }, 400);
+    return corsResponse({ reason: 'No username provided' }, 400);
   }
 
   const { data, error } = await supabase
     .from('registered_users')
-    .select('lightning_address')
+    .select('lightning_address, public_key')
     .eq('username', username)
     .single();
 
   if (error || !data || !data.lightning_address) {
-    return corsResponse({ status: 'ERROR', reason: 'No lightning address found' }, 404);
+    return corsResponse({ reason: 'No lightning address found' }, 404);
   }
 
   const [lnName, lnDomain] = data.lightning_address.split('@');
   if (!lnName || !lnDomain) {
-    return corsResponse({ status: 'ERROR', reason: 'Invalid lightning address' }, 400);
+    return corsResponse({ reason: 'Invalid lightning address' }, 400);
   }
 
   return corsResponse({
-    status: 'OK',
     callback: `https://nvrs.xyz/.well-known/lnurlp/${username}/callback`,
     tag: 'payRequest',
-    maxSendable: 100000000,
+    maxSendable: 100000000000,
     minSendable: 1000,
     metadata: JSON.stringify([
       ["text/plain", `Pay to ${username}@nvrs.xyz`],
       ["text/identifier", `${username}@nvrs.xyz`]
     ]),
-    commentAllowed: 120,
+    commentAllowed: 255,
     payerData: {
       name: { mandatory: false },
       email: { mandatory: false }
-    }
+    },
+    allowsNostr: true,
+    nostrPubkey: data.public_key
   });
 }
 
 interface LnurlPayResponse {
-  status: 'OK' | 'ERROR';
   reason?: string;
   callback?: string;
   tag?: string;
@@ -58,6 +58,8 @@ interface LnurlPayResponse {
     name?: { mandatory: boolean };
     email?: { mandatory: boolean };
   };
+  allowsNostr?: boolean;
+  nostrPubkey?: string;
 }
 
 function corsResponse(body: LnurlPayResponse, status: number = 200) {
