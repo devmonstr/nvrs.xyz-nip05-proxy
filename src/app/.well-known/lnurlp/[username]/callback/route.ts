@@ -8,7 +8,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export async function GET(req: Request, { params }: { params: { username: string } }) {
   const { username } = params;
   if (!username) {
-    return corsResponse({ status: 'ERROR', reason: 'No username provided' }, 400);
+    return corsResponse({ reason: 'No username provided' }, 400);
   }
 
   // Get lightning_address from Supabase
@@ -19,12 +19,12 @@ export async function GET(req: Request, { params }: { params: { username: string
     .single();
 
   if (error || !data || !data.lightning_address) {
-    return corsResponse({ status: 'ERROR', reason: 'No lightning address found' }, 404);
+    return corsResponse({ reason: 'No lightning address found' }, 404);
   }
 
   const [lnName, lnDomain] = data.lightning_address.split('@');
   if (!lnName || !lnDomain) {
-    return corsResponse({ status: 'ERROR', reason: 'Invalid lightning address' }, 400);
+    return corsResponse({ reason: 'Invalid lightning address' }, 400);
   }
 
   // Forward query string to the real callback
@@ -38,10 +38,19 @@ export async function GET(req: Request, { params }: { params: { username: string
         'Accept': 'application/json',
       },
     });
-    const lnurlData = await lnurlRes.json();
-    return corsResponse(lnurlData, lnurlRes.status);
+    // Proxy response ดิบๆ กลับไป
+    const body = await lnurlRes.text();
+    return new NextResponse(body, {
+      status: lnurlRes.status,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      }
+    });
   } catch {
-    return corsResponse({ status: 'ERROR', reason: 'Proxy error' }, 502);
+    return corsResponse({ reason: 'Proxy error' }, 502);
   }
 }
 
